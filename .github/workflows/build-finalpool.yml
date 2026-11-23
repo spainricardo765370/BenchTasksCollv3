@@ -7,13 +7,24 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  cleanup:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout task sources
+      - name: Checkout main
         uses: actions/checkout@v4
         with:
-          ref: finalpool-build
-          fetch-depth: 0
-      - name: Build and publish finalpool
-        run: python3 .github/scripts/build_finalpool.py
+          ref: main
+          fetch-depth: 1
+      - name: Remove temporary build helpers
+        run: |
+          set -euo pipefail
+          git config user.name "finalpool-bot"
+          git config user.email "finalpool-bot@users.noreply.github.com"
+          test -n "$(git ls-remote --heads origin refs/heads/finalpool)"
+          if git ls-remote --exit-code --heads origin refs/heads/finalpool-build >/dev/null; then
+            git push origin --delete refs/heads/finalpool-build
+          fi
+          git rm --quiet .github/workflows/build-finalpool.yml
+          git commit --quiet -m "Remove temporary finalpool build workflow"
+          git push origin HEAD:main
+          git ls-remote --heads origin refs/heads/finalpool refs/heads/main
